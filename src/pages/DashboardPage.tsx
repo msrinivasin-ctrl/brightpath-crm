@@ -10,22 +10,39 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import type { Lead, Batch, Student, FeeRecord } from '../types/crm';
+import type { Lead, Batch, Student, FeeRecord, LeadStatus } from '../types/crm';
 import { leadService } from '../services/leadService';
 import { courseService } from '../services/courseService';
 import { studentService, getLocalFees } from '../services/studentService';
+import { FollowUpTasksWidget } from '../components/tasks/FollowUpTasksWidget';
+import { LeadDetailDrawer } from '../components/leads/LeadDetailDrawer';
 
 export const DashboardPage: React.FC = () => {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [batches, setBatches] = useState<Batch[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [fees] = useState<FeeRecord[]>(getLocalFees);
+  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
 
-  useEffect(() => {
+  const loadDashboardData = () => {
     leadService.getLeads().then((res) => setLeads(res.leads));
     courseService.getBatches().then(setBatches);
     studentService.getStudents().then(setStudents);
+  };
+
+  useEffect(() => {
+    loadDashboardData();
   }, []);
+
+  const handleUpdateStatus = async (leadId: string, status: LeadStatus) => {
+    const updated = await leadService.updateStatus(leadId, status);
+    setLeads((prev) => prev.map((l) => (l.id === leadId ? updated : l)));
+  };
+
+  const handleUpdateLead = (updated: Lead) => {
+    setLeads((prev) => prev.map((l) => (l.id === updated.id ? updated : l)));
+    setSelectedLead(updated);
+  };
 
   const activeLeadsCount = leads.filter((l) => l.status !== 'lost').length;
   const demosScheduledCount = leads.filter((l) => l.status === 'demo_scheduled').length;
@@ -230,6 +247,20 @@ export const DashboardPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Counselor Action Center Tasks Widget */}
+      <FollowUpTasksWidget
+        leads={leads}
+        onSelectLead={setSelectedLead}
+        onUpdateStatus={handleUpdateStatus}
+      />
+
+      {/* Lead Detail Drawer */}
+      <LeadDetailDrawer
+        lead={selectedLead}
+        onClose={() => setSelectedLead(null)}
+        onUpdateLead={handleUpdateLead}
+      />
     </div>
   );
 };

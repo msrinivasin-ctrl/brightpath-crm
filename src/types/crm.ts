@@ -80,3 +80,16 @@ export interface ActivityLog {
   performedBy: string;
   timestamp: string;
 }
+
+export interface PaymentTransaction {
+  id: string;
+  feeRecordId: string;
+  studentId: string;
+  studentName: string;
+  courseName: string;
+  amount: number;
+  paymentMethod: 'cash' | 'bank_transfer' | 'card' | 'online';
+  referenceNote?: string;
+  receiptNumber: string;
+  paymentDate: string;
+}

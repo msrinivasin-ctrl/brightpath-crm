@@ -1,10 +1,55 @@
-import type { Student, FeeRecord, Course, Batch } from '../types/crm';
+import type { Student, FeeRecord, Course, Batch, PaymentTransaction } from '../types/crm';
 import { mockStudents, mockFees } from '../data/mockData';
 import { courseService } from './courseService';
 import { leadService } from './leadService';
 
 const LOCAL_STORAGE_STUDENTS = 'brightpath_students';
 const LOCAL_STORAGE_FEES = 'brightpath_fees';
+const LOCAL_STORAGE_TRANSACTIONS = 'brightpath_transactions';
+
+const initialTransactions: PaymentTransaction[] = [
+  {
+    id: 'tx_1',
+    feeRecordId: 'f2',
+    studentId: 's2',
+    studentName: 'Kavita Menon',
+    courseName: 'SAT Master Prep (Math & English)',
+    amount: 1200,
+    paymentMethod: 'card',
+    referenceNote: 'Full tuition payment paid at admission',
+    receiptNumber: 'RCP-2026-1001',
+    paymentDate: '2026-09-28',
+  },
+  {
+    id: 'tx_2',
+    feeRecordId: 'f1',
+    studentId: 's1',
+    studentName: 'Maya Lin',
+    courseName: 'Grade 10 & 12 Board Exam Accelerator',
+    amount: 500,
+    paymentMethod: 'bank_transfer',
+    referenceNote: 'First installment deposit',
+    receiptNumber: 'RCP-2026-1002',
+    paymentDate: '2026-10-15',
+  },
+];
+
+const getLocalTransactions = (): PaymentTransaction[] => {
+  const stored = localStorage.getItem(LOCAL_STORAGE_TRANSACTIONS);
+  if (!stored) {
+    localStorage.setItem(LOCAL_STORAGE_TRANSACTIONS, JSON.stringify(initialTransactions));
+    return initialTransactions;
+  }
+  try {
+    return JSON.parse(stored);
+  } catch {
+    return initialTransactions;
+  }
+};
+
+const saveLocalTransactions = (txs: PaymentTransaction[]) => {
+  localStorage.setItem(LOCAL_STORAGE_TRANSACTIONS, JSON.stringify(txs));
+};
 
 const getLocalStudents = (): Student[] => {
   const stored = localStorage.getItem(LOCAL_STORAGE_STUDENTS);
@@ -115,4 +160,64 @@ export const studentService = {
 
     return { student: newStudent, fee: newFee };
   },
+
+  async getTransactions(): Promise<PaymentTransaction[]> {
+    return getLocalTransactions();
+  },
+
+  async recordPayment(params: {
+    feeRecordId: string;
+    amount: number;
+    paymentMethod: PaymentTransaction['paymentMethod'];
+    referenceNote?: string;
+  }): Promise<{ fee: FeeRecord; transaction: PaymentTransaction }> {
+    const fees = getLocalFees();
+    const idx = fees.findIndex((f) => f.id === params.feeRecordId);
+    if (idx === -1) throw new Error('Fee record not found');
+
+    const targetFee = fees[idx];
+    if (params.amount <= 0) {
+      throw new Error('Payment amount must be greater than zero');
+    }
+    if (params.amount > targetFee.balanceAmount) {
+      throw new Error(`Payment amount ($${params.amount}) cannot exceed remaining balance ($${targetFee.balanceAmount})`);
+    }
+
+    const today = new Date().toISOString().split('T')[0];
+    const newPaidAmount = targetFee.paidAmount + params.amount;
+    const newBalanceAmount = targetFee.totalAmount - newPaidAmount;
+    const newStatus: FeeRecord['paymentStatus'] = newBalanceAmount === 0 ? 'paid' : 'partially_paid';
+
+    const updatedFee: FeeRecord = {
+      ...targetFee,
+      paidAmount: newPaidAmount,
+      balanceAmount: newBalanceAmount,
+      paymentStatus: newStatus,
+      lastPaymentDate: today,
+    };
+
+    fees[idx] = updatedFee;
+    saveLocalFees(fees);
+
+    // Create PaymentTransaction
+    const receiptSeq = 1000 + Math.floor(Math.random() * 9000);
+    const newTx: PaymentTransaction = {
+      id: 'tx_' + Date.now(),
+      feeRecordId: targetFee.id,
+      studentId: targetFee.studentId,
+      studentName: targetFee.studentName,
+      courseName: targetFee.courseName,
+      amount: params.amount,
+      paymentMethod: params.paymentMethod,
+      referenceNote: params.referenceNote,
+      receiptNumber: `RCP-2026-${receiptSeq}`,
+      paymentDate: today,
+    };
+
+    const txs = getLocalTransactions();
+    saveLocalTransactions([newTx, ...txs]);
+
+    return { fee: updatedFee, transaction: newTx };
+  },
 };
+
