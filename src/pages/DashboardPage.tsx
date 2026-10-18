@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Users,
   CalendarCheck,
@@ -10,11 +10,19 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { mockLeads, mockBatches, mockFees, mockStudents } from '../data/mockData';
+import type { Lead } from '../types/crm';
+import { leadService } from '../services/leadService';
+import { mockBatches, mockFees, mockStudents } from '../data/mockData';
 
 export const DashboardPage: React.FC = () => {
-  const activeLeadsCount = mockLeads.filter((l) => l.status !== 'lost').length;
-  const demosScheduledCount = mockLeads.filter((l) => l.status === 'demo_scheduled').length;
+  const [leads, setLeads] = useState<Lead[]>([]);
+
+  useEffect(() => {
+    leadService.getLeads().then((res) => setLeads(res.leads));
+  }, []);
+
+  const activeLeadsCount = leads.filter((l) => l.status !== 'lost').length;
+  const demosScheduledCount = leads.filter((l) => l.status === 'demo_scheduled').length;
   const totalStudentsCount = mockStudents.length;
 
   const totalFeeExpected = mockFees.reduce((acc, f) => acc + f.totalAmount, 0);
@@ -134,12 +142,12 @@ export const DashboardPage: React.FC = () => {
               to="/leads"
               className="text-xs font-semibold text-indigo-600 hover:text-indigo-800"
             >
-              View all ({mockLeads.length}) &rarr;
+              View all ({leads.length}) &rarr;
             </Link>
           </div>
 
           <div className="mt-4 divide-y divide-slate-100">
-            {mockLeads.slice(0, 4).map((lead) => (
+            {leads.slice(0, 4).map((lead) => (
               <div
                 key={lead.id}
                 className="flex items-center justify-between py-3 first:pt-0 last:pb-0"

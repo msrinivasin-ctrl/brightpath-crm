@@ -36,7 +36,7 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
       <div className="flex items-center gap-3">
         <button
           type="button"
-          onClick={() => navigate('/leads')}
+          onClick={() => navigate('/leads?new=true')}
           className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-indigo-700 transition-colors"
         >
           <Plus className="h-4 w-4" />
