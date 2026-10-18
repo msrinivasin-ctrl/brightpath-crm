@@ -10,24 +10,30 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import type { Lead } from '../types/crm';
+import type { Lead, Batch, Student, FeeRecord } from '../types/crm';
 import { leadService } from '../services/leadService';
-import { mockBatches, mockFees, mockStudents } from '../data/mockData';
+import { courseService } from '../services/courseService';
+import { studentService, getLocalFees } from '../services/studentService';
 
 export const DashboardPage: React.FC = () => {
   const [leads, setLeads] = useState<Lead[]>([]);
+  const [batches, setBatches] = useState<Batch[]>([]);
+  const [students, setStudents] = useState<Student[]>([]);
+  const [fees] = useState<FeeRecord[]>(getLocalFees);
 
   useEffect(() => {
     leadService.getLeads().then((res) => setLeads(res.leads));
+    courseService.getBatches().then(setBatches);
+    studentService.getStudents().then(setStudents);
   }, []);
 
   const activeLeadsCount = leads.filter((l) => l.status !== 'lost').length;
   const demosScheduledCount = leads.filter((l) => l.status === 'demo_scheduled').length;
-  const totalStudentsCount = mockStudents.length;
+  const totalStudentsCount = students.length;
 
-  const totalFeeExpected = mockFees.reduce((acc, f) => acc + f.totalAmount, 0);
-  const totalFeeCollected = mockFees.reduce((acc, f) => acc + f.paidAmount, 0);
-  const collectionPercentage = Math.round((totalFeeCollected / totalFeeExpected) * 100);
+  const totalFeeExpected = fees.reduce((acc, f) => acc + f.totalAmount, 0);
+  const totalFeeCollected = fees.reduce((acc, f) => acc + f.paidAmount, 0);
+  const collectionPercentage = totalFeeExpected > 0 ? Math.round((totalFeeCollected / totalFeeExpected) * 100) : 0;
 
   const stats = [
     {
@@ -195,7 +201,7 @@ export const DashboardPage: React.FC = () => {
           </div>
 
           <div className="mt-4 space-y-4">
-            {mockBatches.map((batch) => {
+            {batches.map((batch) => {
               const fillRate = Math.round((batch.enrolledCount / batch.capacity) * 100);
               return (
                 <div key={batch.id} className="space-y-1.5">

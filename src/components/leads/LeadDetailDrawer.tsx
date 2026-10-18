@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import type { Lead, LeadStatus, ActivityLog } from '../../types/crm';
 import { leadService } from '../../services/leadService';
+import { EnrollLeadModal } from '../students/EnrollLeadModal';
 
 interface LeadDetailDrawerProps {
   lead: Lead | null;
@@ -27,6 +28,7 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
   const [newNote, setNewNote] = useState('');
   const [activityType, setActivityType] = useState<ActivityLog['activityType']>('call');
   const [isSaving, setIsSaving] = useState(false);
+  const [isEnrollModalOpen, setIsEnrollModalOpen] = useState(false);
 
   useEffect(() => {
     if (lead) {
@@ -280,11 +282,7 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
           <div className="border-t border-slate-200 p-4 bg-slate-50">
             <button
               type="button"
-              onClick={() => {
-                alert(
-                  `Enrolling ${lead.studentName} into ${lead.courseInterest}. (Full batch assignment connects in Phase 3!)`
-                );
-              }}
+              onClick={() => setIsEnrollModalOpen(true)}
               className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-semibold text-white shadow-xs hover:bg-emerald-700 transition-colors"
             >
               <Sparkles className="h-4 w-4" />
@@ -293,6 +291,17 @@ export const LeadDetailDrawer: React.FC<LeadDetailDrawerProps> = ({
           </div>
         </div>
       </div>
+
+      <EnrollLeadModal
+        isOpen={isEnrollModalOpen}
+        lead={lead}
+        onClose={() => setIsEnrollModalOpen(false)}
+        onSuccess={(studentName, studentId) => {
+          onUpdateLead({ ...lead, status: 'converted' });
+          alert(`Successfully enrolled ${studentName}!\nGenerated Student ID: ${studentId}`);
+          leadService.getActivities(lead.id).then(setActivities);
+        }}
+      />
     </div>
   );
 };

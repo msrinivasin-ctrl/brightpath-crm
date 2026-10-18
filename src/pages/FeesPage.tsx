@@ -1,11 +1,14 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Calendar, CheckCircle2, Clock } from 'lucide-react';
-import { mockFees } from '../data/mockData';
+import type { FeeRecord } from '../types/crm';
+import { getLocalFees } from '../services/studentService';
 
 export const FeesPage: React.FC = () => {
-  const totalReceivables = mockFees.reduce((acc, f) => acc + f.totalAmount, 0);
-  const totalCollected = mockFees.reduce((acc, f) => acc + f.paidAmount, 0);
-  const totalPending = mockFees.reduce((acc, f) => acc + f.balanceAmount, 0);
+  const [fees] = useState<FeeRecord[]>(getLocalFees);
+
+  const totalReceivables = fees.reduce((acc, f) => acc + f.totalAmount, 0);
+  const totalCollected = fees.reduce((acc, f) => acc + f.paidAmount, 0);
+  const totalPending = fees.reduce((acc, f) => acc + f.balanceAmount, 0);
 
   return (
     <div className="space-y-6">
@@ -49,7 +52,7 @@ export const FeesPage: React.FC = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {mockFees.map((fee) => (
+            {fees.map((fee) => (
               <tr key={fee.id} className="hover:bg-slate-50/50 transition-colors">
                 <td className="px-5 py-4 font-semibold text-slate-900">{fee.studentName}</td>
                 <td className="px-5 py-4 text-slate-600">{fee.courseName}</td>
